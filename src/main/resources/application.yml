@@ -1,0 +1,53 @@
+# Spring Boot 애플리케이션 설정
+spring:
+  application:
+    name: jp-legal-assistant
+    
+  # Bean 오버라이드 허용
+  main:
+    allow-bean-definition-overriding: true
+
+  # MongoDB 설정
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/jp_legal_db}
+      auto-index-creation: true
+
+  # Jackson 설정 (JSON 직렬화)
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: Asia/Seoul
+    default-property-inclusion: non_null
+
+# 서버 설정
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    JavaProject.Backend: DEBUG
+    org.springframework.data.mongodb: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/jp-application.log
+
+# JWT 설정 (환경변수 사용 권장)
+jwt:
+  secret: ${JWT_SECRET:your-secret-key-change-in-production}
+  expiration: 86400000  # 24시간 (밀리초)
+
+# 파일 업로드 설정 (PDF 저장)
+file:
+  upload:
+    dir: ${FILE_UPLOAD_DIR:./uploads/pdfs}
