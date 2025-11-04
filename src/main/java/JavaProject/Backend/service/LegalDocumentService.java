@@ -8,7 +8,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,8 +19,8 @@ public class LegalDocumentService {
      * 모든 법령 조회 (content 제외, 목록용)
      * @return 법령 목록
      */
-    public List<LegalDocument> getAllDocumentsExcludingContent() {
-        return legalDocumentRepository.findAllExcludingContent();
+    public List<LegalDocument> getAllDocuments() {
+        return legalDocumentRepository.findAll();
     }
     
     /**
@@ -29,8 +28,9 @@ public class LegalDocumentService {
      * @param lawId 법령 코드
      * @return LegalDocument (Optional)
      */
-    public Optional<LegalDocument> getDocumentByLawId(String lawId) {
-        return legalDocumentRepository.findByLawId(lawId);
+    public List<LegalDocument> getDocumentsByLawId(String lawId) {
+        List<LegalDocument> documents = legalDocumentRepository.findByLawId(lawId);
+        return documents; // MongoDB는 기본적으로 삽입 순서(_id 순) 반환
     }
     
     /**
@@ -47,8 +47,8 @@ public class LegalDocumentService {
      * @param category 카테고리명
      * @return 법령 목록
      */
-    public List<LegalDocument> getDocumentsByCategory(String category) {
-        return legalDocumentRepository.findByCategories(category);
+    public List<LegalDocument> getDocumentsByCategori(String categori) {
+        return legalDocumentRepository.findByCategori(categori);
     }
     
     /**
@@ -57,8 +57,8 @@ public class LegalDocumentService {
      * @param pageable 페이징 정보
      * @return 법령 페이지
      */
-    public Page<LegalDocument> getDocumentsByCategory(String category, Pageable pageable) {
-        return legalDocumentRepository.findByCategories(category, pageable);
+    public Page<LegalDocument> getDocumentsByCategori(String categori, Pageable pageable) {
+        return legalDocumentRepository.findByCategori(categori, pageable);
     }
     
     /**
@@ -104,14 +104,18 @@ public class LegalDocumentService {
      * @param updatedDocument 수정할 법령 정보
      * @return 수정된 LegalDocument
      */
-    public LegalDocument updateDocument(String lawId, LegalDocument updatedDocument) {
-        LegalDocument document = legalDocumentRepository.findByLawId(lawId)
+    public LegalDocument updateDocument(String id, LegalDocument updatedDocument) {
+        LegalDocument document = legalDocumentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("법령을 찾을 수 없습니다."));
         
+        document.setLawKey(updatedDocument.getLawKey());
         document.setTitle(updatedDocument.getTitle());
-        document.setContent(updatedDocument.getContent());
+        document.setArticleNo(updatedDocument.getArticleNo());
+        document.setArticleTitle(updatedDocument.getArticleTitle());
+        document.setArticleText(updatedDocument.getArticleText());
         document.setSourceUrl(updatedDocument.getSourceUrl());
-        document.setCategories(updatedDocument.getCategories());
+        document.setLastUpdated(updatedDocument.getLastUpdated());
+        document.setCategori(updatedDocument.getCategori());
         
         return legalDocumentRepository.save(document);
     }

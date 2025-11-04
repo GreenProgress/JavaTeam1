@@ -10,7 +10,7 @@ import java.util.List;
 public interface SituationRepository extends MongoRepository<Situation, String> {
     
     // 카테고리별 활성 상황 조회
-    List<Situation> findByCategoryAndActiveTrue(String category);
+    List<Situation> findByCategoryAndActiveTrue(String categori);
     
     // 활성 상황 전체 조회 (정렬 순서 적용)
     List<Situation> findByActiveTrueOrderByDisplayOrderAsc();

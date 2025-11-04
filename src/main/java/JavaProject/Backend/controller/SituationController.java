@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/situations")
+@RequestMapping("/Situation")
 @RequiredArgsConstructor
 public class SituationController {
     
@@ -20,15 +20,15 @@ public class SituationController {
     
     /**
      * 활성 상황 전체 조회
-     * GET /api/situations
+     * GET /api/Situation
      */
     @GetMapping
     public ResponseEntity<List<Situation>> getAllSituations(
-            @RequestParam(required = false) String category) {
+            @RequestParam(required = false) String categori) {
         
-        if (category != null && !category.isEmpty()) {
+        if (categori != null && !categori.isEmpty()) {
             // 카테고리별 조회
-            return ResponseEntity.ok(situationService.getSituationsByCategory(category));
+            return ResponseEntity.ok(situationService.getSituationsByCategory(categori));
         } else {
             // 전체 조회
             return ResponseEntity.ok(situationService.getAllActiveSituations());
@@ -37,7 +37,7 @@ public class SituationController {
     
     /**
      * 특정 상황 상세 조회
-     * GET /api/situations/{situationId}
+     * GET /api/Situation/{situationId}
      */
     @GetMapping("/{situationId}")
     public ResponseEntity<Situation> getSituation(@PathVariable String situationId) {
@@ -48,17 +48,17 @@ public class SituationController {
     
     /**
      * 특정 상황의 질문 목록 조회
-     * GET /api/situations/{situationId}/questions
+     * GET /api/Situation/{situationId}/Question
      */
-    @GetMapping("/{situationId}/questions")
+    @GetMapping("/{situationId}/Question")
     public ResponseEntity<List<Question>> getQuestions(@PathVariable String situationId) {
-        List<Question> questions = questionService.getQuestionsBySituation(situationId);
-        return ResponseEntity.ok(questions);
+        List<Question> Question = questionService.getQuestionsBySituation(situationId);
+        return ResponseEntity.ok(Question);
     }
     
     /**
      * 상황 생성 (관리자용)
-     * POST /api/situations
+     * POST /api/Situation
      */
     @PostMapping
     public ResponseEntity<Situation> createSituation(@RequestBody Situation situation) {
@@ -68,7 +68,7 @@ public class SituationController {
     
     /**
      * 상황 수정 (관리자용)
-     * PUT /api/situations/{situationId}
+     * PUT /api/Situation/{situationId}
      */
     @PutMapping("/{situationId}")
     public ResponseEntity<Situation> updateSituation(

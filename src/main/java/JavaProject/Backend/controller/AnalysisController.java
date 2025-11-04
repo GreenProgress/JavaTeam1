@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/analysis")
+@RequestMapping("/AnalysisResult")
 @RequiredArgsConstructor
 public class AnalysisController {
     
@@ -21,7 +21,7 @@ public class AnalysisController {
     
     /**
      * 분석 요청 (응답 기반 결과 생성)
-     * POST /api/analysis
+     * POST /api/AnalysisResult
      * Body: { sessionId, userId?, situationId }
      */
     @PostMapping
@@ -36,7 +36,7 @@ public class AnalysisController {
     
     /**
      * 특정 분석 결과 조회
-     * GET /api/analysis/{resultId}
+     * GET /api/AnalysisResult/{resultId}
      */
     @GetMapping("/{resultId}")
     public ResponseEntity<AnalysisResult> getResult(@PathVariable String resultId) {
@@ -47,7 +47,7 @@ public class AnalysisController {
     
     /**
      * 세션별 분석 결과 목록 조회
-     * GET /api/analysis/session/{sessionId}
+     * GET /api/AnalysisResult/session/{sessionId}
      */
     @GetMapping("/session/{sessionId}")
     public ResponseEntity<List<AnalysisResult>> getResultsBySession(@PathVariable String sessionId) {
@@ -57,7 +57,7 @@ public class AnalysisController {
     
     /**
      * 사용자별 분석 결과 목록 조회
-     * GET /api/analysis/user/{userId}
+     * GET /api/AnalysisResult/user/{userId}
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<?> getResultsByUser(
@@ -79,7 +79,7 @@ public class AnalysisController {
     
     /**
      * PDF 생성 요청
-     * POST /api/analysis/{resultId}/pdf
+     * POST /api/AnalysisResult/{resultId}/pdf
      */
     @PostMapping("/{resultId}/pdf")
     public ResponseEntity<?> generatePdf(@PathVariable String resultId) {
@@ -92,7 +92,7 @@ public class AnalysisController {
     
     /**
      * PDF 다운로드
-     * GET /api/analysis/{resultId}/pdf
+     * GET /api/AnalysisResult/{resultId}/pdf
      */
     @GetMapping("/{resultId}/pdf")
     public ResponseEntity<?> downloadPdf(@PathVariable String resultId) {

@@ -8,22 +8,21 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface LegalDocumentRepository extends MongoRepository<LegalDocument, String> {
     
     // 법령 코드로 조회
-    Optional<LegalDocument> findByLawId(String lawId);
+	List<LegalDocument> findByLawId(String lawId);
     
     // 법령 코드 목록으로 조회 (관련 법령 조회용)
     List<LegalDocument> findByLawIdIn(List<String> lawIds);
     
     // 카테고리별 법령 조회
-    List<LegalDocument> findByCategories(String category);
+    List<LegalDocument> findByCategori(String categori);
     
     // 카테고리별 법령 조회 (페이징)
-    Page<LegalDocument> findByCategories(String category, Pageable pageable);
+    Page<LegalDocument> findByCategori(String categori, Pageable pageable);
     
     // 제목으로 검색 (부분 일치)
     List<LegalDocument> findByTitleContaining(String keyword);

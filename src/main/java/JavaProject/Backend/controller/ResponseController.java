@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/responses")
+@RequestMapping("/UserResponse")
 @RequiredArgsConstructor
 public class ResponseController {
     
@@ -18,7 +18,7 @@ public class ResponseController {
     
     /**
      * 사용자 응답 저장
-     * POST /api/responses
+     * POST /api/UserResponse
      * Body: { sessionId, userId?, situationId, questionId, responseValue }
      */
     @PostMapping
@@ -37,7 +37,7 @@ public class ResponseController {
     
     /**
      * 여러 응답 한 번에 저장
-     * POST /api/responses/batch
+     * POST /api/UserResponse/batch
      * Body: { sessionId, userId?, situationId, responses: [{ questionId, responseValue }] }
      */
     @PostMapping("/batch")
@@ -65,7 +65,7 @@ public class ResponseController {
     
     /**
      * 세션별 응답 조회
-     * GET /api/responses/session/{sessionId}
+     * GET /api/UserResponse/session/{sessionId}
      */
     @GetMapping("/session/{sessionId}")
     public ResponseEntity<List<UserResponse>> getResponsesBySession(@PathVariable String sessionId) {
@@ -75,7 +75,7 @@ public class ResponseController {
     
     /**
      * 사용자별 응답 조회
-     * GET /api/responses/user/{userId}
+     * GET /api/UserResponse/user/{userId}
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<UserResponse>> getResponsesByUser(@PathVariable String userId) {

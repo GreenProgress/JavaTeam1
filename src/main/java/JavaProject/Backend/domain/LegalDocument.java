@@ -2,21 +2,16 @@ package JavaProject.Backend.domain;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.index.TextIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Date;
-import java.util.List;
-
 /**
  * 법령 문서 엔티티
  * 
- * MongoDB Collection: legal_documents
+ * MongoDB Collection: LegalDocument
  * 
- * 법령 원문과 메타데이터를 저장
- * 텍스트 인덱스를 통한 전문 검색 지원
+ * 법령 조항별 세부 정보를 저장
  * 
  * @author JP Team
  */
@@ -27,37 +22,38 @@ import java.util.List;
 @AllArgsConstructor
 @Document(collection = "LegalDocument")
 public class LegalDocument {
-
-
+    
     @Id
-    private String id; // MongoDB 문서 고유 ID
-
-
-    @Indexed(unique = true) // 유니크 제약 조건
-    private String lawId; // 법령 코드
-    // 예: "LAW-001"
-
-
-    @TextIndexed(weight = 10) // 텍스트 인덱스 적용 (가중치 10)
-    private String title; // 법령 제목
-    // 예: "근로기준법"
-
+    private String id; // MongoDB 문서 고유 ID (_id)
     
-    @TextIndexed(weight = 5) // 텍스트 인덱스 적용 (가중치 5)
-    private String content; // 법령 원문 전체
-    // 예: "제1조(목적) 이 법은 헌법에 따라..."
+    private String lawKey; // 법령 키 (예: "0093382025021135257")
     
-
+    
+    @Indexed
+    private String lawId; // 법령 코드 (예: "009338")
+    
+    
+    @TextIndexed(weight = 10)
+    private String title; // 법령 제목 (예: "전자상거래 등에서의 소비자보호에 관한 법률 시행령")
+    
+    
+    private String articleNo; // 세부조항 번호 (예: "15")
+    
+    
+    private String articleTitle; // 세부조항 제목 (예: "통신판매업자의 신고사항")
+    
+    
+    @TextIndexed(weight = 5)
+    private String articleText; // 세부조항 내용 (예: "제15조(통신판매업자의 신고사항) ...")
+    
+    
     private String sourceUrl; // 출처 URL
-    // 예: "https://www.law.go.kr/LSW/lsInfoP.do?lsiSeq=123456"
-
-
-    @LastModifiedDate // @LastModifiedDate로 자동 갱신
-    private Date lastUpdated; // 마지막 갱신 일시
-
-
-    private List<String> categories; // 카테고리 목록
-    // 예: ["노동", "임대차"]
-
+    
+    
+    private String lastUpdated; // 업데이트 날짜 (String 형식)
+    
+    
+    private String categori; // 구분 카테고리 (예: "노동")
+    
     
 }
