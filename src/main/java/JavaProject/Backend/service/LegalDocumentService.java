@@ -119,4 +119,21 @@ public class LegalDocumentService {
         
         return legalDocumentRepository.save(document);
     }
+    
+//    public org.springframework.data.domain.Page<LegalDocument> getDocumentsByCategori(String categori,
+//            org.springframework.data.domain.Pageable pageable) {
+//    	return legalDocumentRepository.findByCategori(categori, pageable);
+//    }
+
+    // 2) 검색: 컨트롤러가 search(...)로 부르는 경우를 위한 래퍼
+    public List<LegalDocument> search(String keyword) {
+    	return legalDocumentRepository.searchByKeyword(keyword);
+    }
+
+    public org.springframework.data.domain.Page<LegalDocument> search(String keyword,
+    		org.springframework.data.domain.Pageable pageable) {
+    	return legalDocumentRepository.searchByKeyword(keyword, pageable);
+    }
+    
+    
 }
