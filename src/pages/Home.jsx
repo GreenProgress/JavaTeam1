@@ -1,29 +1,31 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { searchLegalDocuments } from "../api/api";
+import { useNavigate } from "react-router-dom";
+import { searchSituations } from "../api/api";
+import SituationCard from '../components/SituationCard';
 import "./Home.css";
 
 /**
  * Home 컴포넌트
  *
- * 메인 페이지로, 검색창을 통해 법령 키워드 검색이 가능합니다.
- * 검색 결과는 법령 제목을 리스트 형태로 보여주며, 각 항목을 클릭하면
- * 해당 법령의 상세 페이지로 이동합니다.
+ * 검색창을 통해 '상황'을 검색합니다.
+ * 검색 결과는 SituationCard 리스트로 보여주며, 각 항목을 클릭하면
+ * 해당 상황의 '질문 페이지'(/detail/:id)로 이동합니다.
  */
 export default function Home() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const navigate = useNavigate(); // 페이지 이동 훅
 
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await searchLegalDocuments(query);
-      // search API에서 페이지 객체를 반환할 수도 있으므로 content를 우선 사용합니다.
-      const items = data.content || data;
+      const data = await searchSituations(query);
+      // API가 페이징 객체를 반환할 수도, 리스트를 바로 반환할 수도 있음
+      const items = data.content || data; 
       setResults(items);
     } catch (err) {
       console.error(err);
@@ -34,6 +36,12 @@ export default function Home() {
     }
   };
 
+  // 검색된 상황 클릭 시 질문 페이지로 이동하는 함수
+  const handleSituationClick = (situationId) => {
+    // Router.jsx에 정의된 /detail/:id 경로로 이동
+    navigate(`/detail/${situationId}`);
+  };
+
   return (
     <main className="home-main">
       <section className="hero-section">
@@ -42,8 +50,8 @@ export default function Home() {
         <div className="search-wrapper">
           <input
             type="text"
-            placeholder="법령 키워드 또는 상황을 검색하세요..."
-            aria-label="법령 검색"
+            placeholder="상황을 검색하세요..."
+            aria-label="상황 검색"
             className="search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -71,22 +79,25 @@ export default function Home() {
         </section>
       )}
 
+      {/* 검색 결과를 SituationCard로 렌더링 */}
       {results.length > 0 && (
         <section className="category-section">
-          <h2>검색 결과 (법령)</h2>
-          <ul className="category-list">
-            {results.map((doc, idx) => (
-              <li key={doc.id || idx}>
-                <Link to={`/law/${doc.lawId}`}>{doc.title || doc.articleTitle || doc.lawId}</Link>
-              </li>
+          <h2>'<b>{query}</b>' 관련 상황</h2>
+          <div className="situation-card-list">
+            {results.map((situation) => (
+              <SituationCard 
+                key={situation.id} 
+                situation={situation} //'situation' prop으로 객체 전체 전달
+                onClick={() => handleSituationClick(situation.id)} // 클릭 이벤트
+              />
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
       {!loading && results.length === 0 && query.trim() && !error && (
         <section className="category-section">
-          <p>검색 결과가 없습니다.</p>
+          <p>'{query}'에 대한 검색 결과가 없습니다.</p>
         </section>
       )}
     </main>

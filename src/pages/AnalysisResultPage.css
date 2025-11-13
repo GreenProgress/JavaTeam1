@@ -1,0 +1,65 @@
+/* AnalysisResultPage.jsx (결과 페이지) 스타일 */
+.result-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.result-section {
+  margin-bottom: 2.5rem;
+}
+
+.result-section h3 {
+  font-size: 1.3rem;
+  color: #333;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.summary p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.procedure-list,
+.checklist {
+  padding-left: 0;
+  line-height: 1.7;
+  list-style-type: none;
+}
+
+.procedure-list li {
+  margin-bottom: 0.5rem;
+}
+
+.checklist li {
+  list-style-type: none;
+  margin-bottom: 0.3rem;
+}
+
+.law-section h4 {
+  font-size: 1.2rem;
+  color: #111;
+  margin-top: 1.5rem;
+}
+
+/* '원문 보기' 버튼 스타일 */
+.law-link-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.law-link-button:hover {
+  background-color: #0056b3;
+  color: white;
+}

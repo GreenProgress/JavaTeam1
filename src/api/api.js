@@ -59,3 +59,50 @@ export async function fetchDocumentsByCategory(category, page = 0, size = 20) {
   if (!res.ok) throw new Error("failed to fetch documents by category");
   return res.json();
 }
+
+
+// 아래는 임의로 추가한 코드들
+// 홈페이지에서 '상황'을 검색하는 함수
+export async function searchSituations(keyword) {
+  const url = `${BASE_URL}/Situation/search?keyword=${encodeURIComponent(keyword)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("failed to search situations");
+  return res.json();
+}
+
+// 사용자의 개별 답변을 서버에 저장하는 함수
+export async function submitResponse(responsePayload) {
+  // responsePayload 예시: { sessionId, situationId, questionId, responseValue, orderIndex }
+  const res = await fetch(`${BASE_URL}/responses`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(responsePayload),
+  });
+  if (!res.ok) throw new Error("failed to submit response");
+  return res.json();
+}
+
+// 모든 답변 완료 후, 최종 분석을 요청하는 함수
+export async function requestAnalysis(analysisPayload) {
+  // analysisPayload 예시: { sessionId, situationId }
+  const res = await fetch(`${BASE_URL}/AnalysisResult`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(analysisPayload),
+  });
+  if (!res.ok) throw new Error("failed to request analysis");
+  return res.json(); // 생성된 AnalysisResult 객체를 반환
+}
+
+// 결과 페이지에서 '법령 원문'을 조회하는 함수
+export async function fetchLegalArticles(lawId, articleNos) {
+  // articleNos는 ["제18조", "제55조"] 같은 배열
+  const params = new URLSearchParams();
+  params.append("lawId", lawId);
+  articleNos.forEach(article => params.append("articles", article));
+
+  const url = `${BASE_URL}/LegalDocument/articles?${params.toString()}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("failed to fetch legal articles");
+  return res.json();
+}
