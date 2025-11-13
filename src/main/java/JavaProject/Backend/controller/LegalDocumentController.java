@@ -134,7 +134,7 @@ public class LegalDocumentController {
     }
     
     /**
-     * [신규] 특정 법령의 특정 조항 목록 조회 (법령 원문 근거용)
+     * 특정 법령의 특정 조항 목록 조회 (법령 원문 근거용)
      * GET /api/LegalDocument/articles?lawId=001872&articles=제18조&articles=제55조
      */
     @GetMapping("/articles")
@@ -145,7 +145,7 @@ public class LegalDocumentController {
         List<LegalDocument> documents = legalDocumentService.findArticles(lawId, articles);
         return ResponseEntity.ok(documents);
     }
-    
+
     /**
      * 공통 수동 페이징 유틸
      */
