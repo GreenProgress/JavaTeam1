@@ -6,7 +6,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 
 @Repository
@@ -23,6 +22,9 @@ public interface LegalDocumentRepository extends MongoRepository<LegalDocument, 
     
     // 카테고리별 법령 조회 (페이징)
     Page<LegalDocument> findByCategori(String categori, Pageable pageable);
+    
+    // lawId와 조항 번호 목록(List)으로 법령 원문 목록을 조회하는 메서드
+    List<LegalDocument> findByLawIdAndArticleNoIn(String lawId, List<String> articleNos);
     
     // 제목으로 검색 (부분 일치)
     List<LegalDocument> findByTitleContaining(String keyword);

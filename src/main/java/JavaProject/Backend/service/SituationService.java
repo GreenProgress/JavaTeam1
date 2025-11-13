@@ -13,6 +13,14 @@ import java.util.Optional;
 public class SituationService {
     
     private final SituationRepository situationRepository;
+
+    /**
+     * [신규] 모든 상황 조회 (컨트롤러 Error 3 해결용)
+     * @return 모든 상황 목록
+     */
+    public List<Situation> getAllSituations() {
+        return situationRepository.findAll();
+    }
     
     /**
      * 활성 상황 전체 조회 (정렬 순서대로)
@@ -36,8 +44,10 @@ public class SituationService {
      * @param situationId 상황 ID
      * @return Situation (Optional)
      */
-    public Optional<Situation> getSituationById(String situationId) {
-        return situationRepository.findById(situationId);
+    // [수정] 컨트롤러 Error 1(Type mismatch) 해결: Optional<Situation> -> Situation
+    public Situation getSituationById(String situationId) {
+        // .orElse(null)을 통해 Optional을 벗겨내고 Situation 객체나 null을 반환
+        return situationRepository.findById(situationId).orElse(null);
     }
     
     /**
@@ -66,5 +76,15 @@ public class SituationService {
         situation.setDisplayOrder(updatedSituation.getDisplayOrder());
         
         return situationRepository.save(situation);
+    }
+    
+    /**
+     * [신규] 상황 검색 서비스 메서드 (Home.jsx 지원)
+     * @param keyword 검색어
+     * @return 검색된 Situation 리스트
+     */
+    public List<Situation> searchSituations(String keyword) {
+        // (SituationRepository에 findByTitleContainingOrDescriptionContaining이 정의되어 있어야 함)
+        return situationRepository.findByTitleContainingOrDescriptionContaining(keyword, keyword);
     }
 }

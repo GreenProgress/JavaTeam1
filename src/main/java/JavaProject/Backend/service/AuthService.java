@@ -14,7 +14,7 @@ import java.util.Optional;
 public class AuthService {
     
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // SecurityConfig에서 Bean 등록 필요
+    private final PasswordEncoder passwordEncoder;
     
     /**
      * 회원가입

@@ -1,15 +1,19 @@
 package JavaProject.Backend.service;
 
 import JavaProject.Backend.domain.AnalysisResult;
+import JavaProject.Backend.domain.Question; // [수정] import 추가
 import JavaProject.Backend.domain.UserResponse;
 import JavaProject.Backend.repository.AnalysisResultRepository;
+import JavaProject.Backend.repository.QuestionRepository; // [수정] import 추가
 import JavaProject.Backend.repository.UserResponseRepository;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId; // [수정] import 추가
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.Comparator; // [수정] import 추가
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,134 +25,400 @@ public class AnalysisService {
     
     private final UserResponseRepository userResponseRepository;
     private final AnalysisResultRepository analysisResultRepository;
-    
+    private final QuestionRepository questionRepository; // [수정] QuestionRepository 의존성 주입
+
     /**
      * 사용자 응답 분석 및 결과 생성
-     * @param sessionId 세션 ID
-     * @param userId 사용자 ID (로그인 사용자인 경우, null 가능)
-     * @param situationId 상황 ID
-     * @return 생성된 AnalysisResult
      */
     public AnalysisResult analyzeResponses(String sessionId, String userId, String situationId) {
-        // 1. 사용자 응답 조회
-        List<UserResponse> responses = userResponseRepository.findBySessionIdAndSituationId(sessionId, situationId);
         
-        if (responses.isEmpty()) {
+        ObjectId situationObjectId;
+        try {
+            situationObjectId = new ObjectId(situationId);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 situationId 형식입니다.");
+        }
+
+        // 1. 해당 상황의 '질문' 목록을 먼저 조회 (질문 개수 파악용)
+        List<Question> questions = questionRepository.findBySituationIdOrderByOrderIndexAsc(situationObjectId);
+        
+        if (questions.isEmpty()) {
+            throw new IllegalArgumentException("이 상황에 대한 질문을 찾을 수 없습니다.");
+        }
+        int questionCount = questions.size();
+
+        // 2. 사용자 응답 조회 (최신순으로 정렬)
+        List<UserResponse> allResponses = userResponseRepository.findBySessionIdAndSituationIdOrderByCreatedAtDesc(sessionId, situationObjectId);
+        
+        if (allResponses.isEmpty()) {
             throw new IllegalArgumentException("응답 데이터가 없습니다.");
         }
-        
-        // 2. 응답을 Map으로 변환 (questionId -> responseValue)
-        Map<String, String> answerMap = responses.stream()
+
+        // 3. 최신 응답 '세트'만 필터링 (질문 개수만큼)
+        List<UserResponse> recentResponses = allResponses.stream()
+                .limit(questionCount)
+                .collect(Collectors.toList());
+
+        // 4. Question의 ID(_id)를 Key로, OrderIndex를 Value로 갖는 Map 생성
+        Map<String, Integer> questionIdToOrderMap = questions.stream()
                 .collect(Collectors.toMap(
-                        UserResponse::getQuestionId,
-                        UserResponse::getResponseValue
+                        Question::getId, 
+                        Question::getOrderIndex
                 ));
         
-        // 3. 시나리오 키 생성 (답변 조합에 따라)
-        String scenarioKey = determineScenario(situationId, answerMap);
+        // 5. 사용자 응답(recentResponses)을 질문 순서(orderIndex)대로 정렬
+        recentResponses.sort(Comparator.comparing(response -> 
+            questionIdToOrderMap.getOrDefault(response.getQuestionId(), Integer.MAX_VALUE)
+        ));
         
-        // 4. 시나리오에 맞는 결과 템플릿 로드
-        // TODO: JSON 파일 또는 DB에서 결과 템플릿 로드
-        // 현재는 임시 데이터로 대체
-        AnalysisResult result = buildAnalysisResult(sessionId, userId, situationId, scenarioKey);
+        // 6. 정렬된 응답 리스트(recentResponses)를 기반으로 시나리오 키 생성
+        String scenarioKey = determineScenario(recentResponses);
         
-        // 5. 결과 저장
+        // 7. situationId와 시나리오 키를 조합 (switch문에서 사용할 고유 키)
+        String fullScenarioKey = situationId + "_" + scenarioKey;
+
+        // 8. 시나리오에 맞는 결과 템플릿 로드
+        AnalysisResult result = buildAnalysisResult(sessionId, userId, situationId, fullScenarioKey);
+        
+        // 9. 결과 저장
         return analysisResultRepository.save(result);
     }
     
-    /**
-     * 세션별 분석 결과 조회
-     * @param sessionId 세션 ID
-     * @return 분석 결과 목록
-     */
     public List<AnalysisResult> getResultsBySession(String sessionId) {
         return analysisResultRepository.findBySessionIdOrderByCreatedAtDesc(sessionId);
     }
-    
-    /**
-     * 사용자별 분석 결과 조회
-     * @param userId 사용자 ID
-     * @return 분석 결과 목록
-     */
     public List<AnalysisResult> getResultsByUser(String userId) {
         return analysisResultRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
-    
-    /**
-     * 사용자별 분석 결과 조회 (페이징)
-     * @param userId 사용자 ID
-     * @param pageable 페이징 정보
-     * @return 분석 결과 페이지
-     */
     public Page<AnalysisResult> getResultsByUser(String userId, Pageable pageable) {
         return analysisResultRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     }
-    
-    /**
-     * 분석 결과 ID로 조회
-     * @param resultId 결과 ID
-     * @return AnalysisResult (Optional)
-     */
     public Optional<AnalysisResult> getResultById(String resultId) {
         return analysisResultRepository.findById(resultId);
     }
-    
+
     // ===== 내부 메서드 =====
     
     /**
-     * 답변 조합에 따라 시나리오 키 결정
-     * @param situationId 상황 ID
-     * @param answerMap 질문ID -> 답변 맵
-     * @return 시나리오 키
+     * 정렬된 답변 조합에 따라 시나리오 키 결정
      */
-    private String determineScenario(String situationId, Map<String, String> answerMap) {
-        // TODO: 비즈니스 로직에 따라 시나리오 키 생성
-        // 예: wage_delay_has_contract_1month
-        
-        // 임시 로직
-        StringBuilder key = new StringBuilder(situationId);
-        answerMap.forEach((qId, answer) -> {
-            key.append("_").append(answer.toLowerCase().replace(" ", "_"));
-        });
-        
-        return key.toString();
+    private String determineScenario(List<UserResponse> sortedResponses) {
+        return sortedResponses.stream()
+                .map(UserResponse::getResponseValue)
+                .map(String::toUpperCase)
+                .collect(Collectors.joining("_"));
     }
     
     /**
-     * 시나리오에 맞는 분석 결과 생성
-     * @param sessionId 세션 ID
-     * @param userId 사용자 ID
-     * @param situationId 상황 ID
-     * @param scenarioKey 시나리오 키
-     * @return AnalysisResult
+     * 시나리오에 맞는 분석 결과 생성 (모든 경우의 수 탑재)
      */
-    private AnalysisResult buildAnalysisResult(String sessionId, String userId, String situationId, String scenarioKey) {
-        // TODO: JSON 파일 또는 DB에서 템플릿 로드
-        // 현재는 임시 데이터
+    private AnalysisResult buildAnalysisResult(String sessionId, String userId, String situationId, String fullScenarioKey) {
         
-        return AnalysisResult.builder()
+        AnalysisResult.AnalysisResultBuilder builder = AnalysisResult.builder()
                 .sessionId(sessionId)
                 .userId(userId)
                 .situationId(situationId)
-                .resultSummary("근로계약서가 있다면 노동청 진정 절차를 진행할 수 있습니다.")
-                .procedures(Arrays.asList(
-                        "1단계: 사업주에게 서면으로 임금 지급 요청",
-                        "2단계: 노동청에 진정서 제출",
-                        "3단계: 증거자료 준비"
-                ))
-                .checklist(Arrays.asList(
-                        "근로계약서 사본",
-                        "임금명세서",
-                        "출근기록"
-                ))
-                .relatedLaws(Arrays.asList(
-                        AnalysisResult.RelatedLawInfo.builder()
-                                .lawId("LAW-001")
-                                .title("근로기준법")
-                                .relevantArticles(Arrays.asList("제36조", "제43조"))
-                                .build()
-                ))
-                .pdfGenerationStatus("READY")
-                .build();
+                .pdfGenerationStatus("READY");
+
+        switch (fullScenarioKey) {
+
+            // --------------------------------------------------
+            // Situation 1: 주휴수당 미지급 (ID: 6909de12e45beb1bf04bcce5)
+            // --------------------------------------------------
+            case "6909de12e45beb1bf04bcce5_YES_YES_YES":
+                builder.resultSummary("주 15시간 이상, 1주 개근 조건을 모두 충족하셨습니다. 사용자는 주휴수당(유급휴일수당)을 지급할 의무가 있습니다. 미지급 시 '임금 체불'에 해당합니다.")
+                        .procedures(Arrays.asList(
+                                "1단계: 사용자에게 주휴수당 지급을 명확히 요구합니다.",
+                                "2단계: 지급 거부 시, '임금 체불'로 고용노동부에 진정(신고)을 제기할 수 있습니다.",
+                                "3단계: 고용노동부에서 '체불 임금등·사업주 확인서'를 발급받아 법적 절차를 진행합니다."
+                        ))
+                        .checklist(Arrays.asList("근로계약서", "출퇴근 기록", "급여명세서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제18조", "제55조"))
+                        ));
+                break;
+            
+            case "6909de12e45beb1bf04bcce5_NO_YES_YES":
+            case "6909de12e45beb1bf04bcce5_NO_YES_NO":
+            case "6909de12e45beb1bf04bcce5_NO_NO_YES":
+            case "6909de12e45beb1bf04bcce5_NO_NO_NO":
+                builder.resultSummary("주휴수당은 '1주 15시간 이상' 근로자에게 적용됩니다. 귀하는 첫 번째 조건(Q1)을 충족하지 못했으므로, 아쉽지만 주휴수당 지급 대상이 아닙니다.")
+                        .procedures(Arrays.asList(
+                                "1. 현행법상 주휴수당 지급 요건을 충족하지 못했습니다.",
+                                "2. (참고) 4주 미만 근로자의 경우 그 기간을 평균하여 1주 15시간 여부를 판단합니다."
+                        ))
+                        .checklist(Arrays.asList("근로계약서 또는 근무 스케줄표 (15시간 미만 확인용)"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제18조"))
+                        ));
+                break;
+
+            case "6909de12e45beb1bf04bcce5_YES_NO_YES": 
+            case "6909de12e45beb1bf04bcce5_YES_NO_NO": 
+                builder.resultSummary("주휴수당은 '1주 15시간 이상 근무'와 '1주 소정근로일 개근' 두 가지 조건을 모두 충족해야 발생합니다. 귀하는 '1주 개근' 조건(Q2 '아니오' 응답)을 충족하지 못했기 때문에, 이번 주는 아쉽지만 주휴수당 지급 대상이 아닙니다.")
+                        .procedures(Arrays.asList(
+                                "1. 이번 주는 주휴수당 지급 요건을 충족하지 못했습니다.",
+                                "2. 다음 주에는 약속된 근무일을 모두 출근(개근)하여 법정 주휴수당을 받으실 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("근무 스케줄표 (결근 사실 확인용)", "근로계약서 (약속된 근무일 확인용)"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제55조"))
+                        ));
+                break;
+            
+            case "6909de12e45beb1bf04bcce5_YES_YES_NO":
+                builder.resultSummary("주휴수당 지급 요건(15시간 이상, 개근)을 충족하셨으며(Q1, Q2 '예'), 주휴수당이 미지급되지 않았다고(Q3 '아니오') 응답하셨습니다. 급여명세서에 '주휴수당' 또는 '유급휴일수당' 항목이 포함되어 정상 지급된 것으로 보입니다.")
+                        .procedures(Arrays.asList("1. 급여명세서를 다시 한번 확인하여 '주휴수당' 항목 또는 기본급에 주휴수당이 포함되었는지 확인해 보시기 바랍니다."))
+                        .checklist(Arrays.asList("급여명세서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제55조"))
+                        ));
+                break;
+
+            // --------------------------------------------------
+            // Situation 2: 근로계약서 미작성 (ID: 691038bc98993588c0c10966)
+            // --------------------------------------------------
+            case "691038bc98993588c0c10966_NO_YES": 
+            case "691038bc98993588c0c10966_NO_NO":  
+                builder.resultSummary("사용자는 근로계약 체결 시 임금, 근로시간 등 주요 근로조건을 서면(전자문서 포함)으로 명시하고 근로자에게 교부해야 합니다. 이를 위반하는 것은 그 자체로 법 위반(벌금 또는 과태료 대상)입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 지금이라도 사용자에게 서면 근로계약서 교부를 요구합니다.",
+                                "2. 거부할 경우, 고용노동부에 '근로기준법 제17조 위반'으로 신고할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("근무 사실을 입증할 모든 자료 (급여 이체 내역, 동료와의 대화, 출퇴근 기록)", "구두로 합의했던 내용을 정리한 메모"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제17조"))
+                        ));
+                break;
+            case "691038bc98993588c0c10966_YES_NO": 
+            case "691038bc98993588c0c10966_YES_YES":
+                builder.resultSummary("주요 근로조건이 명시된 서면 근로계약서를 교부받으셨으므로(Q1 '예' 응답), 사용자는 근로기준법 제17조에 따른 법적 의무를 이행한 상태입니다. 분쟁 발생 시 해당 계약서의 내용을 기준으로 합니다.")
+                        .procedures(Arrays.asList(
+                                "1. 교부받은 근로계약서의 내용을 다시 한번 꼼꼼히 확인합니다.",
+                                "2. 만약 계약서의 내용과 실제 근무 조건이 다르다면, 이는 '근로조건 위반'으로 별개의 신고가 가능합니다."
+                        ))
+                        .checklist(Arrays.asList("교부받은 근로계약서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제17조"))
+                        ));
+                break;
+
+            // --------------------------------------------------
+            // Situation 3: 최저임금 미달 (ID: 691038d798993588c0c10967)
+            // --------------------------------------------------
+            case "691038d798993588c0c10967_NO_YES_YES":
+            case "691038d798993588c0c10967_NO_YES_NO": 
+            case "691038d798993588c0c10967_NO_NO_YES":
+            case "691038d798993588c0c10967_NO_NO_NO":
+                builder.resultSummary("받으신 시급이 법정 최저임금 이상이므로(Q1 '아니오' 응답), 최저임금법 위반에 해당하지 않습니다.")
+                        .procedures(Arrays.asList("1. 현재 급여는 법적 기준을 준수하고 있습니다."))
+                        .checklist(Arrays.asList("급여명세서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("000129", "최저임금법", Arrays.asList("제6조"))
+                        ));
+                break;
+            case "691038d798993588c0c10967_YES_NO_YES":
+            case "691038d798993588c0c10967_YES_NO_NO":
+                builder.resultSummary("최저임금 미달(Q1 '예'), 수습 기간 아님(Q2 '아니오')으로 응답하셨습니다. 수습 기간이 아님에도 최저임금 미만으로 지급하는 것은 명백한 최저임금법 위반입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 최저임금 미달액(차액) 지급을 즉시 요구합니다.",
+                                "2. 지급 거부 시, 고용노동부에 '최저임금법 위반'으로 신고(진정)할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("실제 근무 시간을 입증할 출퇴근 기록", "실제 받은 급여액을 입증할 급여명세서 또는 계좌 이체 내역"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("000129", "최저임금법", Arrays.asList("제6조", "제28조"))
+                        ));
+                break;
+            case "691038d798993588c0c10967_YES_YES_YES":
+                builder.resultSummary("최저임금 미달(Q1 '예'), 수습 기간(Q2 '예'), 단순노무업무(Q3 '예')로 응답하셨습니다. 수습 기간이라 할지라도 '단순노무업무' 종사자는 최저임금을 100% 지급해야 합니다. 감액 지급은 최저임금법 위반입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 '단순노무업무'는 수습 감액 대상이 아님을 알리고 차액 지급을 요구합니다.",
+                                "2. 지급 거부 시, 고용노동부에 '최저임금법 위반'으로 신고(진정)할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("급여명세서 (감액 내역 확인)", "근로계약서 (수습 기간 및 업무 내용 확인)", "업무 내용이 단순노무임을 입증할 자료 (업무지시 내용, 사진 등)"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("000129", "최저임금법", Arrays.asList("제5조", "제6조", "제28조"))
+                        ));
+                break;
+            case "691038d798993588c0c10967_YES_YES_NO":
+                builder.resultSummary("최저임금 미달(Q1 '예'), 수습 기간(Q2 '예'), 단순노무 아님(Q3 '아니오')으로 응답하셨습니다. 1년 이상 계약한 근로자가 수습 3개월 이내이고 단순노무가 아닐 경우, 최저임금의 90%까지 감액 지급이 가능합니다. 귀하의 시급이 법정 최저임금의 90% 미만이라면 법 위반에 해당합니다.")
+                        .procedures(Arrays.asList(
+                                "1. 올해 최저시급의 90% 금액을 계산해봅니다.",
+                                "2. 만약 현재 시급이 90% 금액보다 적다면, 사용자에게 차액 지급을 요구합니다.",
+                                "3. 거부 시, 고용노동부에 신고(진정)할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("근로계약서 (1년 이상 계약인지, 수습 기간이 명시되었는지 확인)", "급여명세서 (실제 지급된 시급 확인)"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("000129", "최저임금법", Arrays.asList("제5조", "제6조"))
+                        ));
+                break;
+
+            // --------------------------------------------------
+            // Situation 4: 급여 체불 (ID: 691038ed98993588c0c10968)
+            // --------------------------------------------------
+            case "691038ed98993588c0c10968_NO_YES_YES":
+            case "691038ed98993588c0c10968_NO_YES_NO": 
+            case "691038ed98993588c0c10968_NO_NO_YES": 
+            case "691038ed98993588c0c10968_NO_NO_NO": 
+                builder.resultSummary("급여가 약속된 날짜에 전액 지급되었다고(Q1 '아니오' 응답) 하셨습니다. 급여 체불 상황이 아닌 것으로 보입니다.")
+                        .procedures(Arrays.asList("1. 급여명세서를 통해 지급 내역을 다시 한번 확인해 보시기 바랍니다."))
+                        .checklist(Arrays.asList("급여명세서", "계좌 이체 내역"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제43조"))
+                        ));
+                break;
+            case "691038ed98993588c0c10968_YES_YES_NO":
+            case "691038ed98993588c0c10968_YES_NO_NO":
+                builder.resultSummary("임금 체불(Q1 '예') 상태이나, 국가의 '대지급금' 제도를 신청하는 데 필수적인 서류가 없습니다(Q3 '아니오' 응답). 법적 절차를 위해 고용노동부의 확인이 필요합니다.")
+                        .procedures(Arrays.asList(
+                                "1. 즉시 고용노동부(관할 노동청)에 '임금 체불' 진정을 제기합니다.",
+                                "2. 근로감독관의 조사를 통해 체불 사실이 확정되면, '체불 임금등·사업주 확인서' 발급을 요청합니다.",
+                                "3. 이 확인서를 받아야 다음 단계인 '간이대지급금'을 신청할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("근로계약서", "체불 사실을 입증할 자료 (급여명세서, 계좌 이체 내역, 출퇴근 기록)", "사업주와 나눈 대화 (문자, 카톡, 녹취)"))
+                        .relatedLaws(Arrays.asList(
+                                new AnalysisResult.RelatedLawInfo("000128", "임금채권보장법", Arrays.asList("제7조")),
+                                new AnalysisResult.RelatedLawInfo("007898", "임금채권보장법 시행규칙", Arrays.asList("제9조의2"))
+                        ));
+                break;
+            case "691038ed98993588c0c10968_YES_YES_YES":
+                builder.resultSummary("체불(Q1 '예'), 퇴직(Q2 '예'), 확인서 있음(Q3 '예')으로 응답하셨습니다. '퇴직자 간이대지급금' 신청 요건을 갖추었습니다. 확인서 발급일로부터 6개월 이내에 신청해야 합니다.")
+                        .procedures(Arrays.asList(
+                                "1. '체불 임금등·사업주 확인서' 원본을 준비합니다.",
+                                "2. 근로복지공단에 '간이대지급금' 지급을 청구합니다. (온라인/방문 접수 가능)"
+                        ))
+                        .checklist(Arrays.asList("'체불 임금등·사업주 확인서' (필수)", "신분증", "본인 명의 통장"))
+                        .relatedLaws(Arrays.asList(
+                                new AnalysisResult.RelatedLawInfo("000128", "임금채권보장법", Arrays.asList("제7조")),
+                                new AnalysisResult.RelatedLawInfo("004551", "임금채권보장법 시행령", Arrays.asList("제9조"))
+                        ));
+                break;
+            case "691038ed98993588c0c10968_YES_NO_YES":
+                builder.resultSummary("체불(Q1 '예'), 재직 중(Q2 '아니오'), 확인서 있음(Q3 '예')으로 응답하셨습니다. '재직자 간이대지급금' 신청 요건을 갖추었습니다. 확인서 발급일로부터 6개월 이내에 신청해야 합니다.")
+                        .procedures(Arrays.asList(
+                                "1. '체불 임금등·사업주 확인서' 원본을 준비합니다.",
+                                "2. 근로복지공단에 '간이대지급금' 지급을 청구합니다. (온라인/방문 접수 가능)"
+                        ))
+                        .checklist(Arrays.asList("'체불 임금등·사업주 확인서' (필수)", "신분증", "본인 명의 통장"))
+                        .relatedLaws(Arrays.asList(
+                                new AnalysisResult.RelatedLawInfo("000128", "임금채권보장법", Arrays.asList("제7조의2")),
+                                new AnalysisResult.RelatedLawInfo("004551", "임금채권보장법 시행령", Arrays.asList("제9조"))
+                        ));
+                break;
+                
+            // --------------------------------------------------
+            // Situation 5: 불법 공제 (ID: 6910391f98993588c0c10969)
+            // --------------------------------------------------
+            case "6910391f98993588c0c10969_NO_YES":
+            case "6910391f98993588c0c10969_NO_NO":
+                builder.resultSummary("임금에서 공제된 항목이 없다고(Q1 '아니오' 응답) 하셨습니다. '불법 공제' 상황에 해당하지 않는 것으로 보입니다.")
+                        .procedures(Arrays.asList("1. 급여명세서를 통해 지급 내역 및 공제 내역을 다시 한번 확인해 보시기 바랍니다."))
+                        .checklist(Arrays.asList("급여명세서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제43조"))
+                        ));
+                break;
+            case "6910391f98993588c0c10969_YES_YES":
+                builder.resultSummary("임금은 전액 근로자에게 지급되어야 합니다(전액 지급 원칙). 법령(세금, 4대보험) 외의 항목을 근로자의 '개별적·구체적 동의' 없이(Q2 '예' 응답) 일방적으로 공제하는 것은 불법입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 '근로기준법 제43조 위반'임을 알리고 공제된 금액의 반환을 요구합니다.",
+                                "2. 거부 시, '임금 체불'로 고용노동부에 진정을 제기할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("공제 내역이 명시된 급여명세서", "근로계약서 (공제에 동의하지 않았음을 증명)", "일방적 공제를 통보받은 문자/카톡 내역"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제43조"))
+                        ));
+                break;
+            case "6910391f98993588c0c10969_YES_NO":
+                builder.resultSummary("임금 공제에 대해 서면으로 동의했다고(Q2 '아니오' 응답) 하셨습니다. 근로자의 명확한 '개별 동의'가 있었다면 공제 자체는 가능할 수 있습니다. 다만, 그 동의가 근로계약서에 일괄 포함되었거나 강요에 의한 것이라면 무효를 주장할 수 있습니다.")
+                        .procedures(Arrays.asList(
+                                "1. 동의한 서류의 내용을 다시 확인합니다.",
+                                "2. 만약 공제 금액이 실제 손해액보다 과도하거나, 동의 과정이 불합리했다면 고용노동부에 상담을 받아볼 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("공제 동의서", "근로계약서", "공제 내역이 포함된 급여명세서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제20조", "제43조"))
+                        ));
+                break;
+
+            // --------------------------------------------------
+            // Situation 6: 일방적 스케줄 변경 (ID: 6910394198993588c0c1096a)
+            // --------------------------------------------------
+            case "6910394198993588c0c1096a_NO_NO_YES":
+            case "6910394198993588c0c1096a_NO_NO_NO":
+                builder.resultSummary("일방적인 추가 근무 강요(Q1 '아니오')나 근무 취소(Q2 '아니오')가 발생하지 않은 것으로 보입니다. 이 상황에 해당하지 않습니다.")
+                        .procedures(Arrays.asList("1. 현재 스케줄은 합의하에 정상적으로 운영되고 있습니다."))
+                        .checklist(Arrays.asList("근무 스케줄표", "근로계약서"))
+                        .relatedLaws(Arrays.asList(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제53조", "제46조"))
+                        ));
+                break;
+            case "6910394198993588c0c1096a_YES_NO_YES":
+            case "6910394198993588c0c1096a_YES_NO_NO":
+                builder.resultSummary("근로자의 '동의' 없이(Q1 '예' 응답) 일방적인 연장근로를 강요하는 것은 근로기준법 제53조 위반입니다. 연장근로는 당사자 간의 합의가 필수입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 연장근로는 '합의' 사항임을 명확히 고지하고 거부 의사를 밝힙니다.",
+                                "2. 강요가 계속되거나 불이익을 받을 경우, 고용노동부에 신고할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("연장근로를 일방적으로 지시한 내역 (문자, 카톡, 업무지시서)", "근로계약서 (원래 합의된 근로시간 확인용)"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제53조"))
+                        ));
+                break;
+            case "6910394198993588c0c1096a_NO_YES_YES":
+                builder.resultSummary("사용자의 사정(매출 감소, 손님 없음 등)으로 근무를 취소(Q2 '예')하고, 평균 임금의 70% 이상인 '휴업수당'을 지급하지 않았다면(Q3 '예') 근로기준법 제46조 위반(임금 체불)입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 '근로기준법 제46조'에 따른 휴업수당 지급을 요구합니다.",
+                                "2. 거부 시, '임금 체불'로 고용노동부에 진정을 제기할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("원래 근무 스케줄표", "휴업(근무 취소)을 통보받은 문자/카톡/녹취", "휴업수당이 지급되지 않은 급여명세서"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제46조"))
+                        ));
+                break;
+            case "6910394198993588c0c1096a_NO_YES_NO":
+                builder.resultSummary("사용자의 사정으로 근무를 취소(Q2 '예')했으나, 법정 휴업수당(평균임금 70% 이상)이 정상적으로 지급되었다면(Q3 '아니오') 법 위반이 아닙니다.")
+                        .procedures(Arrays.asList("1. 급여명세서에 '휴업수당' 항목이 정상적으로 지급되었는지 확인합니다."))
+                        .checklist(Arrays.asList("급여명세서", "근무 취소 통보 내역"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제46조"))
+                        ));
+                break;
+            case "6910394198993588c0c1096a_YES_YES_YES":
+                builder.resultSummary("두 가지 법 위반 사항이 모두 확인됩니다. 근로자 동의 없는 '연장근로 강요'(Q1 '예')는 근로기준법 제53조 위반이며, 근무 취소 후 '휴업수당 미지급'(Q3 '예')은 근로기준법 제46조 위반(임금 체불)입니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 연장근로 강요 중단 및 휴업수당 지급을 요구합니다.",
+                                "2. 해결되지 않을 시, 두 가지 사안을 모두 병합하여 고용노동부에 진정을 제기할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("일방적 연장근로 지시 내역", "근무 취소 통보 내역", "휴업수당이 미지급된 급여명세서", "근로계약서"))
+                        .relatedLaws(Arrays.asList(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제53조", "제46조"))
+                        ));
+                break;
+            case "6910394198993588c0c1096a_YES_YES_NO":
+                builder.resultSummary("휴업수당은 정상적으로 지급되었으나(Q3 '아니오'), 근로자의 '동의' 없이 일방적인 연장근로를 강요(Q1 '예')한 것은 근로기준법 제53조 위반에 해당합니다.")
+                        .procedures(Arrays.asList(
+                                "1. 사용자에게 연장근로는 '합의' 사항임을 명확히 고지하고 거부 의사를 밝힙니다.",
+                                "2. 강요가 계속되거나 불이익을 받을 경우, 고용노동부에 '연장근로 강요' 건으로 신고할 수 있습니다."
+                        ))
+                        .checklist(Arrays.asList("연장근로를 일방적으로 지시한 내역 (문자, 카톡, 업무지시서)", "근로계약서 (원래 합의된 근로시간 확인용)"))
+                        .relatedLaws(List.of(
+                                new AnalysisResult.RelatedLawInfo("001872", "근로기준법", Arrays.asList("제53조"))
+                        ));
+                break;
+
+            // --------------------------------------------------
+            // 기본값 (Default Case)
+            // --------------------------------------------------
+            default:
+                builder.resultSummary("분석 결과를 생성하는 중 오류가 발생했습니다. (일치하는 시나리오 없음: " + fullScenarioKey + ")")
+                        .procedures(Arrays.asList("관리자에게 문의하세요."))
+                        .checklist(Arrays.asList())
+                        .relatedLaws(Arrays.asList())
+                        .pdfGenerationStatus("ERROR");
+                break;
+        }
+
+        return builder.build();
     }
 }

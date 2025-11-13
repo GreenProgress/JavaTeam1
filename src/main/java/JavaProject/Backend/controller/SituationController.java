@@ -14,68 +14,41 @@ import java.util.List;
 @RequestMapping("/Situation")
 @RequiredArgsConstructor
 public class SituationController {
-    
+
     private final SituationService situationService;
     private final QuestionService questionService;
-    
-    /**
-     * 활성 상황 전체 조회
-     * GET /api/Situation
-     */
+
     @GetMapping
-    public ResponseEntity<List<Situation>> getAllSituations(
-            @RequestParam(required = false) String categori) {
-        
-        if (categori != null && !categori.isEmpty()) {
-            // 카테고리별 조회
-            return ResponseEntity.ok(situationService.getSituationsByCategory(categori));
-        } else {
-            // 전체 조회
-            return ResponseEntity.ok(situationService.getAllActiveSituations());
+    public ResponseEntity<List<Situation>> getAllSituations() {
+        List<Situation> situations = situationService.getAllActiveSituations();
+        return ResponseEntity.ok(situations);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Situation> getSituationById(@PathVariable String id) {
+        // [수정] Error 3: Optional<Situation>을 Situation으로 변환 (Service 파일에서 수정)
+        Situation situation = situationService.getSituationById(id);
+        if (situation == null) {
+            return ResponseEntity.notFound().build();
         }
+        return ResponseEntity.ok(situation);
     }
-    
-    /**
-     * 특정 상황 상세 조회
-     * GET /api/Situation/{situationId}
-     */
-    @GetMapping("/{situationId}")
-    public ResponseEntity<Situation> getSituation(@PathVariable String situationId) {
-        return situationService.getSituationById(situationId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-    
-    /**
-     * 특정 상황의 질문 목록 조회
-     * GET /api/Situation/{situationId}/Question
-     */
+
     @GetMapping("/{situationId}/Question")
-    public ResponseEntity<List<Question>> getQuestions(@PathVariable String situationId) {
-        List<Question> Question = questionService.getQuestionsBySituation(situationId);
-        return ResponseEntity.ok(Question);
+    public ResponseEntity<List<Question>> getQuestionsBySituationId(@PathVariable String situationId) {
+        // [수정] Error 2: Service가 String을 받도록 수정 (Service 파일에서 수정)
+        List<Question> questions = questionService.getQuestionsBySituationId(situationId);
+        return ResponseEntity.ok(questions);
     }
-    
+
     /**
-     * 상황 생성 (관리자용)
-     * POST /api/Situation
+     * [신규] 상황 키워드 검색
+     * GET /api/Situation/search?keyword=...
      */
-    @PostMapping
-    public ResponseEntity<Situation> createSituation(@RequestBody Situation situation) {
-        Situation created = situationService.createSituation(situation);
-        return ResponseEntity.ok(created);
-    }
-    
-    /**
-     * 상황 수정 (관리자용)
-     * PUT /api/Situation/{situationId}
-     */
-    @PutMapping("/{situationId}")
-    public ResponseEntity<Situation> updateSituation(
-            @PathVariable String situationId,
-            @RequestBody Situation situation) {
-        
-        Situation updated = situationService.updateSituation(situationId, situation);
-        return ResponseEntity.ok(updated);
+    @GetMapping("/search")
+    public ResponseEntity<List<Situation>> searchSituations(@RequestParam String keyword) {
+        // [수정] searchSituations 추가 (Service 파일에서 수정)
+        List<Situation> situations = situationService.searchSituations(keyword);
+        return ResponseEntity.ok(situations);
     }
 }

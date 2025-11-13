@@ -90,6 +90,16 @@ public class LegalDocumentService {
     }
     
     /**
+     * [신규] lawId와 조항 번호 목록(List)으로 법령 원문 목록 조회
+     * @param lawId 법령 ID (예: "001872")
+     * @param articleNos 조항 번호 리스트 (예: ["제18조", "제55조"])
+     * @return LegalDocument 리스트
+     */
+    public List<LegalDocument> findArticles(String lawId, List<String> articleNos) {
+        return legalDocumentRepository.findByLawIdAndArticleNoIn(lawId, articleNos);
+    }
+    
+    /**
      * 법령 생성 (관리자용)
      * @param document 생성할 법령 정보
      * @return 생성된 LegalDocument
@@ -119,4 +129,21 @@ public class LegalDocumentService {
         
         return legalDocumentRepository.save(document);
     }
+    
+//    public org.springframework.data.domain.Page<LegalDocument> getDocumentsByCategori(String categori,
+//            org.springframework.data.domain.Pageable pageable) {
+//    	return legalDocumentRepository.findByCategori(categori, pageable);
+//    }
+
+    // 2) 검색: 컨트롤러가 search(...)로 부르는 경우를 위한 래퍼
+    public List<LegalDocument> search(String keyword) {
+    	return legalDocumentRepository.searchByKeyword(keyword);
+    }
+
+    public org.springframework.data.domain.Page<LegalDocument> search(String keyword,
+    		org.springframework.data.domain.Pageable pageable) {
+    	return legalDocumentRepository.searchByKeyword(keyword, pageable);
+    }
+    
+    
 }

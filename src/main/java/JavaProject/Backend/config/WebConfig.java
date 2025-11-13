@@ -13,7 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**") // /api/** 경로에 대해
+        registry.addMapping("/**") // /api/** 경로에 대해
                 .allowedOrigins(
                         "http://localhost:3000",  // React 개발 서버
                         "http://localhost:8080",  // Vue 개발 서버

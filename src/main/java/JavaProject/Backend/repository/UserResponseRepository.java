@@ -3,7 +3,7 @@ package JavaProject.Backend.repository;
 import JavaProject.Backend.domain.UserResponse;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-
+import org.bson.types.ObjectId;
 import java.util.List;
 
 @Repository
@@ -13,10 +13,13 @@ public interface UserResponseRepository extends MongoRepository<UserResponse, St
     List<UserResponse> findBySessionId(String sessionId);
     
     // 세션 ID + 상황 ID로 응답 조회
-    List<UserResponse> findBySessionIdAndSituationId(String sessionId, String situationId);
+    List<UserResponse> findBySessionIdAndSituationId(String sessionId, ObjectId situationId);
+
+    // 세션 ID + 상황 ID로 응답 조회 (최신순 정렬)
+    List<UserResponse> findBySessionIdAndSituationIdOrderByCreatedAtDesc(String sessionId, ObjectId situationId);
     
     // 사용자 ID로 응답 조회 (로그인 사용자)
-    List<UserResponse> findByUserIdOrderByRespondedAtDesc(String userId);
+    List<UserResponse> findByUserIdOrderByCreatedAtDesc(String userId);
     
     // 사용자 ID + 상황 ID로 응답 조회
     List<UserResponse> findByUserIdAndSituationId(String userId, String situationId);
