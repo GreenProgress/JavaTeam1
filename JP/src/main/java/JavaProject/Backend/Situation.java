@@ -1,5 +1,6 @@
 package JavaProject.Backend;
 
+import java.util.Date;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -13,7 +14,9 @@ public class Situation {
     private String category;
     private Boolean active;
     private Date updatedAt;
-    
+    private String description;
+    private int number;
+
 
     // 생성자
     public Situation() { }
