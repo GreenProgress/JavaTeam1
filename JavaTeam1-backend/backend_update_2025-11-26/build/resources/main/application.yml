@@ -1,0 +1,52 @@
+# ==============================
+# Spring Boot 기본 설정
+# ==============================
+spring:
+  application:
+    name: jp-legal-assistant
+
+  # MVC 경로 매칭 오류 해결 (중요!)
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  # Jackson 설정 (JSON 직렬화)
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: Asia/Seoul
+    default-property-inclusion: non_null
+
+# ==============================
+# 서버 설정
+# ==============================
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# ==============================
+# 로깅 설정
+# ==============================
+logging:
+  level:
+    root: INFO
+    JavaProject.Backend: DEBUG
+    org.springframework.data.mongodb: DEBUG
+
+# ==============================
+# JWT 설정
+# ==============================
+jwt:
+  secret: ${JWT_SECRET:your-secret-key-change-in-production}
+  expiration: 86400000  # 24시간
+
+# ==============================
+# 파일 업로드 설정
+# ==============================
+file:
+  upload:
+    dir: ${FILE_UPLOAD_DIR:./uploads/pdfs}
