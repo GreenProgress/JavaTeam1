@@ -1,0 +1,64 @@
+/* src/pages/Auth.css */
+
+/* 전체 화면 중앙 정렬 컨테이너 */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 80px;
+}
+
+/* 카드 박스 */
+.auth-card {
+  width: 380px;
+  padding: 28px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+
+/* 제목 */
+.auth-card h2 {
+  margin-bottom: 25px;
+  color: #1a2b49;
+  font-size: 26px;
+}
+
+/* 입력칸 — (중앙 정렬 + 폭 줄이기) */
+.auth-card input {
+  width: 90%;              /* 카드 좌우 여백 확보 */
+  margin: 0 auto 15px;     /* 중앙 정렬 + 아래 여백 */
+  padding: 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  display: block;          /* margin auto 중앙 적용 */
+  box-sizing: border-box;
+}
+
+/* 로그인 버튼 */
+.login-btn {
+  width: 90%;             /* 입력칸과 동일한 폭 */
+  margin: 8px auto 0;
+  padding: 12px;
+  background: #1e4d80;
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 회원가입 버튼 */
+.signup-btn {
+  width: 90%;             /* 입력칸과 동일한 폭 */
+  margin: 10px auto 0;
+  padding: 12px;
+  background: gray;
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}

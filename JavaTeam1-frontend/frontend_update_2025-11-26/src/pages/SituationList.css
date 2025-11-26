@@ -1,0 +1,62 @@
+/* src/pages/SituationList.css */
+
+.situation-list-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 10px 15px;
+  font-family: "Pretendard", sans-serif;
+}
+
+.list-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #222;
+}
+
+.situation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.situation-card {
+  background: white;
+  padding: 18px 22px;
+  border-radius: 12px;
+  border: 1px solid #d9e7ff;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.situation-card:hover {
+  background: #f5faff;
+  border-color: #bcd8ff;
+}
+
+.situation-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #003d8f;
+}
+
+.situation-desc {
+  margin-top: 8px;
+  font-size: 15px;
+  color: #555;
+}
+
+.no-data {
+  text-align: center;
+  font-size: 18px;
+  color: #888;
+  margin-top: 30px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 18px;
+  color: #777;
+  margin-top: 30px;
+}

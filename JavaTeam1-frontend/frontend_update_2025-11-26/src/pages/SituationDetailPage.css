@@ -1,0 +1,62 @@
+/* src/pages/SituationDetailPage.css */
+
+.sd-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+.sd-back-btn {
+  background: #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.sd-title {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.sd-description {
+  font-size: 16px;
+  margin-bottom: 30px;
+}
+
+.sd-subtitle {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.sd-law-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sd-law-item {
+  padding: 14px 18px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.sd-law-item:hover {
+  transform: translateY(-3px);
+  background: #f8f9fa;
+}
+
+.sd-law-title {
+  font-size: 16px;
+}
+
+.sd-empty {
+  color: #666;
+  font-size: 14px;
+}

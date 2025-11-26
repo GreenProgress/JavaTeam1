@@ -1,0 +1,89 @@
+/* 페이지 전체 */
+.l-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  background: #f5f8fc;
+  padding-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 제목 */
+.l-title {
+  width: 90%;
+  max-width: 800px;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #0a4fa3;
+}
+
+/* 설명 */
+.l-desc {
+  width: 90%;
+  max-width: 800px;
+  color: #555;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* 검색창 */
+.l-search-box {
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  gap: 10px;
+}
+
+.l-search-box input {
+  flex: 1;
+  padding: 13px 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
+  outline: none;
+  background: white;
+}
+
+.l-search-box button {
+  padding: 0 20px;
+  background: #083c7c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* 이미지 3개 */
+.l-fixed-image-wrapper {
+  width: 90%;
+  max-width: 800px;
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+
+  margin-top: 40px;
+  margin-bottom: 25px;
+}
+
+.l-fixed-image-wrapper img {
+  width: 200px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+/* 안내 문구 */
+.l-disclaimer {
+  width: 90%;
+  max-width: 800px;
+  text-align: center;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 10px;
+  margin-bottom: 50px;
+}

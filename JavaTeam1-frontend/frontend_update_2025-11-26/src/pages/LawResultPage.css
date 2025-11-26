@@ -1,0 +1,42 @@
+/* 검색 결과 페이지 전체 */
+.lr-wrapper {
+  padding: 40px;
+  background: #f5f8fc;
+  min-height: 100vh;
+}
+
+/* 제목 */
+.lr-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+/* 결과 없음 표시 */
+.lr-empty {
+  margin-top: 50px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+}
+
+/* 리스트 전체 */
+.lr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 카드 */
+.lr-card {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  cursor: pointer;
+}
+
+/* 카드 hover */
+.lr-card:hover {
+  background: #eef4ff;
+}
